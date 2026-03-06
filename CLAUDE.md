@@ -23,7 +23,7 @@
 - When adding new dependencies, ensure they are up to date
 - Use jackson 3 for all components, avoid using jackson 2 when possible
 - IMPORTANT: After changing `build.gradle.kts`, always run `./gradlew clean nativeCompile test` on that subproject
-- IMPORTANT: After any changes, always run ./gradlew clean test
+- IMPORTANT: After any changes, always run `./gradlew clean test` in a corresponding subproject
 - Always consider fixing warning on build or application context startup during tests execution
 - Please add comments to your code when the solution is not obvious, or you need to test several approaches
 
