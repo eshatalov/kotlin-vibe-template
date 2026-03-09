@@ -8,3 +8,11 @@ spring:
     schemas: template
     create-schemas: true
   # R2DBC and DataSource URLs are provided by TestDatabaseConfig
+
+app:
+  redis:
+    streams:
+      test-table:
+        enabled: false
+        key: template:test-table-events
+        poll-timeout: 1s

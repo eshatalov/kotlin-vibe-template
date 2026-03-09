@@ -4,6 +4,7 @@ import com.github.template.jooq.tables.pojos.TestTable
 import com.github.template.client.model.SaveTestTableRequest
 import com.github.template.client.model.TestTableMetadata
 import com.github.template.testtable.repository.TestTableRepository
+import com.github.template.testtable.stream.TestTableEventPublisher
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -21,7 +22,8 @@ import java.util.UUID
 class TestTableServiceTest {
 
     private val repository = mockk<TestTableRepository>()
-    private val service = TestTableService(repository)
+    private val eventPublisher = mockk<TestTableEventPublisher>(relaxed = true)
+    private val service = TestTableService(repository, eventPublisher)
 
     @Test
     fun `findAll should return all items as responses`(): Unit = runBlocking {
@@ -135,6 +137,7 @@ class TestTableServiceTest {
         assertThat(result.eventTimestamp).isEqualTo(eventTimestamp)
         assertThat(result.metadata.item).isEqualTo("New Item")
         coVerify { repository.insert("New Item", eventDate, eventTimestamp, metadata) }
+        coVerify { eventPublisher.publishCreated(result) }
     }
 
     @Test
@@ -169,6 +172,7 @@ class TestTableServiceTest {
         assertThat(result.eventTimestamp).isEqualTo(eventTimestamp)
         assertThat(result.metadata.item).isEqualTo("Updated Item")
         coVerify { repository.update(id, "Updated Name", eventDate, eventTimestamp, metadata) }
+        coVerify { eventPublisher.publishUpdated(result) }
     }
 
     @Test
@@ -193,6 +197,7 @@ class TestTableServiceTest {
         assertThatThrownBy { runBlocking { service.update(id, request) } }
             .isInstanceOf(NotFoundException::class.java)
             .hasMessage("TestTable with id $id not found")
+        coVerify(exactly = 0) { eventPublisher.publishUpdated(any()) }
     }
 
     @Test

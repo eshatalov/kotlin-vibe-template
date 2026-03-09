@@ -16,3 +16,11 @@ spring:
     baseline-on-migrate: true
     baseline-version: "0"
     schemas: template
+
+app:
+  redis:
+    streams:
+      test-table:
+        enabled: true
+        key: template:test-table-events
+        poll-timeout: 1s

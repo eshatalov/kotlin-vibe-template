@@ -1,0 +1,5 @@
+@baseUrl = http://localhost:8080
+
+### Get all test tables
+GET {{baseUrl}}/api/test-tables
+Accept: application/json

@@ -1,0 +1,16 @@
+@baseUrl = http://localhost:8080
+
+### Create test table
+POST {{baseUrl}}/api/test-tables
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Example item",
+  "eventDate": "2024-01-15",
+  "eventTimestamp": "2024-01-15T10:30:00+00:00",
+  "metadata": {
+    "item": "Example item",
+    "description": "Created from IntelliJ HTTP Client"
+  }
+}
