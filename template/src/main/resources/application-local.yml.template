@@ -8,6 +8,10 @@
 # Note: application-local.yml is gitignored to prevent committing credentials
 
 spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
   r2dbc:
     url: r2dbc:postgresql://localhost:5432/YOUR_DATABASE_NAME
     username: YOUR_USERNAME

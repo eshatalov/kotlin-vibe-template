@@ -4,6 +4,7 @@ import com.github.template.client.model.SaveTestTableRequest
 import com.github.template.client.model.TestTableResponse
 import com.github.template.testtable.mapper.toResponse
 import com.github.template.testtable.repository.TestTableRepository
+import com.github.template.testtable.stream.TestTableEventPublisher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.springframework.stereotype.Service
@@ -12,7 +13,8 @@ import java.util.UUID
 
 @Service
 class TestTableService(
-    private val repository: TestTableRepository
+    private val repository: TestTableRepository,
+    private val eventPublisher: TestTableEventPublisher
 ) {
 
     @Transactional(readOnly = true)
@@ -29,17 +31,19 @@ class TestTableService(
 
     @Transactional
     suspend fun create(request: SaveTestTableRequest): TestTableResponse {
-        return repository.insert(
+        val response = repository.insert(
             name = request.name,
             eventDate = request.eventDate,
             eventTimestamp = request.eventTimestamp,
             metadata = request.metadata
         ).toResponse()
+        eventPublisher.publishCreated(response)
+        return response
     }
 
     @Transactional
     suspend fun update(id: UUID, request: SaveTestTableRequest): TestTableResponse {
-        return repository.update(
+        val response = repository.update(
             id = id,
             name = request.name,
             eventDate = request.eventDate,
@@ -48,6 +52,8 @@ class TestTableService(
         )
             ?.toResponse()
             ?: throw NotFoundException("TestTable with id $id not found")
+        eventPublisher.publishUpdated(response)
+        return response
     }
 
     @Transactional

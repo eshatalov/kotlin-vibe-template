@@ -1,0 +1,17 @@
+@baseUrl = http://localhost:8080
+@testTableId = 21ac10d3-2da6-4b77-8c9b-9a1edad71906
+
+### Update test table
+PUT {{baseUrl}}/api/test-tables/{{testTableId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Updated item",
+  "eventDate": "2024-02-20",
+  "eventTimestamp": "2024-02-20T15:45:00+00:00",
+  "metadata": {
+    "item": "Updated item",
+    "description": "Updated from IntelliJ HTTP Client"
+  }
+}

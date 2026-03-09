@@ -46,6 +46,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-jooq")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
@@ -144,9 +145,10 @@ abstract class BaseFlywayTask : DefaultTask() {
      * Subclasses can override specific settings via configure callback.
      */
     protected fun createFlyway(configure: (org.flywaydb.core.api.configuration.FluentConfiguration) -> Unit = {}): org.flywaydb.core.Flyway {
+        val migrationDirectory = project.layout.buildDirectory.dir("resources/main/db/migration").get().asFile
         val builder = org.flywaydb.core.Flyway.configure()
             .dataSource(dbConfig.url, dbConfig.user, dbConfig.password)
-            .locations("filesystem:build/resources/main/db/migration")
+            .locations("filesystem:${migrationDirectory.absolutePath}")
             .schemas(dbSchema.get())
             .createSchemas(true)
         configure(builder)

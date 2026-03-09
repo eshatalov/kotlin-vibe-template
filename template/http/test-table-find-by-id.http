@@ -1,0 +1,6 @@
+@baseUrl = http://localhost:8080
+@testTableId = 21ac10d3-2da6-4b77-8c9b-9a1edad71906
+
+### Get test table by id
+GET {{baseUrl}}/api/test-tables/{{testTableId}}
+Accept: application/json
