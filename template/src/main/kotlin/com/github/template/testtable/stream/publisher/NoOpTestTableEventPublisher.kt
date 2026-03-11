@@ -1,6 +1,6 @@
-package com.github.template.testtable.stream
+package com.github.template.testtable.stream.publisher
 
-import com.github.template.client.model.TestTableResponse
+import com.github.template.model.TestTableResponse
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 
@@ -15,4 +15,6 @@ class NoOpTestTableEventPublisher : TestTableEventPublisher {
     override suspend fun publishCreated(response: TestTableResponse) = Unit
 
     override suspend fun publishUpdated(response: TestTableResponse) = Unit
+
+    override suspend fun publishDeleted(response: TestTableResponse) = Unit
 }

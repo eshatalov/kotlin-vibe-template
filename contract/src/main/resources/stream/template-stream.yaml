@@ -1,0 +1,30 @@
+openapi: 3.1.0
+info:
+  title: Template Stream Contract
+  description: Redis Stream wrapper contract for Template test table events.
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    TestTableResponse:
+      $ref: '../contract/template-contract.yaml#/components/schemas/TestTableResponse'
+
+    TestTableEventType:
+      type: string
+      description: Type of the test table event carried by the Redis stream.
+      enum:
+        - CREATED
+        - UPDATED
+        - DELETED
+
+    TestTableStreamMessage:
+      type: object
+      description: Redis Stream message wrapper for test table events.
+      required:
+        - eventType
+        - response
+      properties:
+        eventType:
+          $ref: '#/components/schemas/TestTableEventType'
+        response:
+          $ref: '#/components/schemas/TestTableResponse'

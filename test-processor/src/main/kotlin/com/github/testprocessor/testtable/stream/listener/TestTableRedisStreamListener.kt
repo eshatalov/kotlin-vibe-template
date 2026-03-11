@@ -1,5 +1,6 @@
-package com.github.template.testtable.stream
+package com.github.testprocessor.testtable.stream.listener
 
+import com.github.testprocessor.testtable.stream.properties.TestTableStreamProperties
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.DisposableBean
 import org.springframework.beans.factory.InitializingBean
@@ -18,6 +19,7 @@ import reactor.core.publisher.Mono
 import reactor.util.retry.Retry
 import java.time.Duration
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
 
 @Component
 @ConditionalOnProperty(
@@ -30,11 +32,12 @@ class TestTableRedisStreamListener(
     connectionFactory: ReactiveRedisConnectionFactory,
     private val reactiveStringRedisTemplate: ReactiveStringRedisTemplate,
     private val properties: TestTableStreamProperties,
-    private val converter: TestTableStreamMessageConverter,
+    private val recordHandler: TestTableStreamRecordHandler,
     @Value("\${spring.application.name}") private val applicationName: String
 ) : InitializingBean, DisposableBean {
 
     private val consumerName = "$applicationName-${UUID.randomUUID()}"
+    private val shuttingDown = AtomicBoolean(false)
     private val streamReceiverOptions: StreamReceiver.StreamReceiverOptions<String, MapRecord<String, String, String>> =
         StreamReceiver.StreamReceiverOptions.builder()
             .pollTimeout(properties.pollTimeout)
@@ -52,10 +55,13 @@ class TestTableRedisStreamListener(
                 Consumer.from(applicationName, consumerName),
                 StreamOffset.create(properties.key, ReadOffset.lastConsumed())
             )
-            .concatMap(::handleRecord)
+            .concatMap(recordHandler::handleRecord)
             .retryWhen(
+                // Stop retrying once the app is shutting down so connection-close signals
+                // from Lettuce do not turn into noisy retry loops during a normal shutdown.
                 Retry.backoff(Long.MAX_VALUE, retryDelay)
                     .maxBackoff(retryDelay)
+                    .filter { !shuttingDown.get() }
                     .doBeforeRetry { signal ->
                         logger.warn(
                             "Retrying test table stream listener stream={} group={} consumer={} attempt={}",
@@ -67,32 +73,25 @@ class TestTableRedisStreamListener(
                         )
                     }
             )
-            .subscribe()
+            .subscribe(
+                {},
+                { exception ->
+                    if (!shuttingDown.get()) {
+                        logger.error(
+                            "Test table stream listener stopped stream={} group={} consumer={}",
+                            properties.key,
+                            applicationName,
+                            consumerName,
+                            exception
+                        )
+                    }
+                }
+            )
     }
 
     override fun destroy() {
+        shuttingDown.set(true)
         subscription?.dispose()
-    }
-
-    private fun handleRecord(record: MapRecord<String, String, String>): Mono<Void> {
-        return Mono.fromCallable { converter.fromRecord(record) }
-            .doOnNext { message ->
-                logger.info(
-                    "Received test table stream message stream={} recordId={} group={} consumer={} eventType={} response={}",
-                    record.stream,
-                    record.id.value,
-                    applicationName,
-                    consumerName,
-                    message.eventType,
-                    message.response
-                )
-            }
-            .flatMap {
-                reactiveStringRedisTemplate
-                    .opsForStream<String, String>()
-                    .acknowledge(properties.key, applicationName, record.id)
-            }
-            .then()
     }
 
     private fun ensureConsumerGroup() {
@@ -101,7 +100,7 @@ class TestTableRedisStreamListener(
                 .opsForStream<String, String>()
                 .createGroup(properties.key, ReadOffset.latest(), applicationName)
                 .onErrorResume { exception ->
-                    if (exception.message?.contains("BUSYGROUP") == true) {
+                    if (exception.isBusyGroupError()) {
                         Mono.empty()
                     } else {
                         Mono.error(exception)
@@ -120,4 +119,15 @@ class TestTableRedisStreamListener(
         private val logger = LoggerFactory.getLogger(TestTableRedisStreamListener::class.java)
         private val retryDelay: Duration = Duration.ofSeconds(1)
     }
+}
+
+private fun Throwable.isBusyGroupError(): Boolean {
+    var current: Throwable? = this
+    while (current != null) {
+        if (current.message?.contains("BUSYGROUP") == true) {
+            return true
+        }
+        current = current.cause
+    }
+    return false
 }

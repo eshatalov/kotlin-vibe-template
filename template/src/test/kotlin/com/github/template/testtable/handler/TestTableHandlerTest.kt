@@ -1,7 +1,7 @@
 package com.github.template.testtable.handler
 
-import com.github.template.client.model.TestTableMetadata
-import com.github.template.client.model.TestTableResponse
+import com.github.template.model.TestTableMetadata
+import com.github.template.model.TestTableResponse
 import com.github.template.testtable.service.NotFoundException
 import com.github.template.testtable.service.TestTableService
 import io.mockk.coEvery

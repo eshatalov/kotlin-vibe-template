@@ -1,6 +1,6 @@
 package com.github.template.testtable.handler
 
-import com.github.template.client.model.SaveTestTableRequest
+import com.github.template.model.SaveTestTableRequest
 import com.github.template.testtable.service.TestTableService
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.stereotype.Component

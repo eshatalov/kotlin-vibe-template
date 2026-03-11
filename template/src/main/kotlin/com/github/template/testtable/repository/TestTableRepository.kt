@@ -2,7 +2,7 @@ package com.github.template.testtable.repository
 
 import com.github.template.jooq.tables.pojos.TestTable
 import com.github.template.jooq.tables.references.TEST_TABLE
-import com.github.template.client.model.TestTableMetadata
+import com.github.template.model.TestTableMetadata
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.reactive.asFlow

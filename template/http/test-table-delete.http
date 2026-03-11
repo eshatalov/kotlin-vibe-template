@@ -1,5 +1,5 @@
 @baseUrl = http://localhost:8080
-@testTableId = 21ac10d3-2da6-4b77-8c9b-9a1edad71906
+@testTableId = ee4b142e-6c6e-4bbd-8a9c-5b7e91bad79e
 
 ### Delete test table
 DELETE {{baseUrl}}/api/test-tables/{{testTableId}}

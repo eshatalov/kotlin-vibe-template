@@ -1,0 +1,18 @@
+# Local development Spring Boot configuration
+# Copy this file to application-local.yml and fill in your values
+#
+# Usage:
+#   cp src/main/resources/application-local.yml.template src/main/resources/application-local.yml
+#   # Edit application-local.yml with your actual values
+#
+# Note: application-local.yml is gitignored to prevent committing credentials
+
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+app:
+  template:
+    base-url: http://localhost:8080

@@ -1,6 +1,10 @@
 spring:
   application:
-    name: Template
+    name: template
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: 6379
   r2dbc:
     url: ${R2DBC_URL}
     username: ${DB_USER}

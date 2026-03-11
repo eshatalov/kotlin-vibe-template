@@ -1,10 +1,10 @@
 package com.github.template.testtable.service
 
-import com.github.template.client.model.SaveTestTableRequest
-import com.github.template.client.model.TestTableResponse
+import com.github.template.model.SaveTestTableRequest
+import com.github.template.model.TestTableResponse
 import com.github.template.testtable.mapper.toResponse
 import com.github.template.testtable.repository.TestTableRepository
-import com.github.template.testtable.stream.TestTableEventPublisher
+import com.github.template.testtable.stream.publisher.TestTableEventPublisher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.springframework.stereotype.Service
@@ -58,8 +58,12 @@ class TestTableService(
 
     @Transactional
     suspend fun delete(id: UUID) {
+        val response = repository.findById(id)
+            ?.toResponse()
+            ?: throw NotFoundException("TestTable with id $id not found")
         if (!repository.deleteById(id)) {
             throw NotFoundException("TestTable with id $id not found")
         }
+        eventPublisher.publishDeleted(response)
     }
 }

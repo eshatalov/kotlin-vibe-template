@@ -1,6 +1,10 @@
-package com.github.template.testtable.stream
+package com.github.template.testtable.stream.publisher
 
-import com.github.template.client.model.TestTableResponse
+import com.github.template.message.TestTableEventType
+import com.github.template.message.TestTableStreamMessage
+import com.github.template.model.TestTableResponse
+import com.github.template.testtable.stream.converter.TestTableStreamMessageConverter
+import com.github.template.testtable.stream.properties.TestTableStreamProperties
 import kotlinx.coroutines.reactor.awaitSingle
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -26,6 +30,10 @@ class TestTableRedisStreamPublisher(
 
     override suspend fun publishUpdated(response: TestTableResponse) {
         publish(TestTableEventType.UPDATED, response)
+    }
+
+    override suspend fun publishDeleted(response: TestTableResponse) {
+        publish(TestTableEventType.DELETED, response)
     }
 
     private suspend fun publish(eventType: TestTableEventType, response: TestTableResponse) {

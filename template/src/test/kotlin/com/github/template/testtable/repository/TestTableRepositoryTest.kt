@@ -3,7 +3,7 @@ package com.github.template.testtable.repository
 import com.github.database.rider.core.api.dataset.DataSet
 import com.github.database.rider.core.api.dataset.ExpectedDataSet
 import com.github.template.AbstractContextTest
-import com.github.template.client.model.TestTableMetadata
+import com.github.template.model.TestTableMetadata
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat

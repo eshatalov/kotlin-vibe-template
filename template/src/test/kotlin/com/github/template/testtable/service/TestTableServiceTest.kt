@@ -1,10 +1,11 @@
 package com.github.template.testtable.service
 
 import com.github.template.jooq.tables.pojos.TestTable
-import com.github.template.client.model.SaveTestTableRequest
-import com.github.template.client.model.TestTableMetadata
+import com.github.template.model.SaveTestTableRequest
+import com.github.template.model.TestTableMetadata
+import com.github.template.testtable.mapper.toResponse
 import com.github.template.testtable.repository.TestTableRepository
-import com.github.template.testtable.stream.TestTableEventPublisher
+import com.github.template.testtable.stream.publisher.TestTableEventPublisher
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -202,21 +203,36 @@ class TestTableServiceTest {
 
     @Test
     fun `delete should delete when item exists`(): Unit = runBlocking {
+        val now = OffsetDateTime.parse("2024-01-15T10:30:00+00:00")
         val id = UUID.fromString("550e8400-e29b-41d4-a716-446655440000")
+        val existing = TestTable(
+            id = id,
+            name = "Test Item",
+            eventDate = LocalDate.of(2024, 1, 15),
+            eventTimestamp = OffsetDateTime.parse("2024-01-15T10:30:00+00:00"),
+            metadata = JSONB.valueOf("{\"item\":\"Test Item\",\"description\":\"Test description\"}"),
+            createdAt = now,
+            updatedAt = now
+        )
+        coEvery { repository.findById(id) } returns existing
         coEvery { repository.deleteById(id) } returns true
 
         service.delete(id)
 
+        coVerify { repository.findById(id) }
         coVerify { repository.deleteById(id) }
+        coVerify { eventPublisher.publishDeleted(existing.toResponse()) }
     }
 
     @Test
     fun `delete should throw NotFoundException when item does not exist`(): Unit = runBlocking {
         val id = UUID.fromString("550e8400-e29b-41d4-a716-446655449999")
-        coEvery { repository.deleteById(id) } returns false
+        coEvery { repository.findById(id) } returns null
 
         assertThatThrownBy { runBlocking { service.delete(id) } }
             .isInstanceOf(NotFoundException::class.java)
             .hasMessage("TestTable with id $id not found")
+        coVerify(exactly = 0) { repository.deleteById(any()) }
+        coVerify(exactly = 0) { eventPublisher.publishDeleted(any()) }
     }
 }

@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: test-processor
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: 6379
+  main:
+    keep-alive: true
+    web-application-type: none
+
+app:
+  template:
+    base-url: http://template:8080
+  redis:
+    streams:
+      test-table:
+        enabled: true
+        key: template:test-table-events
+        poll-timeout: 1s

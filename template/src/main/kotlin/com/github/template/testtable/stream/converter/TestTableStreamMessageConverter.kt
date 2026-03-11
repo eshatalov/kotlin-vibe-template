@@ -1,6 +1,8 @@
-package com.github.template.testtable.stream
+package com.github.template.testtable.stream.converter
 
-import com.github.template.client.model.TestTableResponse
+import com.github.template.message.TestTableEventType
+import com.github.template.message.TestTableStreamMessage
+import com.github.template.model.TestTableResponse
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.connection.stream.MapRecord
 import org.springframework.data.redis.connection.stream.StreamRecords

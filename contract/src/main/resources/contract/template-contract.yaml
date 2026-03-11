@@ -1,0 +1,147 @@
+openapi: 3.1.0
+info:
+  title: Template Contract
+  description: Shared data contract for the Template service.
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    UUID:
+      type: string
+      format: uuid
+      pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+      example: '550e8400-e29b-41d4-a716-446655440000'
+      description: A universally unique identifier (UUID)
+
+    TestTableMetadata:
+      type: object
+      description: Metadata associated with a test table record
+      required:
+        - item
+        - description
+      properties:
+        item:
+          type: string
+          description: The item name
+          examples:
+            - "Sample Item"
+        description:
+          type: string
+          description: A description of the item
+          examples:
+            - "Sample description for the event"
+
+    SaveTestTableRequest:
+      type: object
+      description: Request body for creating or updating a test table record
+      required:
+        - name
+        - eventDate
+        - eventTimestamp
+        - metadata
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          description: The name of the test table record
+          examples:
+            - "Test Event"
+        eventDate:
+          type: string
+          format: date
+          description: The date of the event
+          examples:
+            - "2024-01-15"
+        eventTimestamp:
+          type: string
+          format: date-time
+          description: The timestamp of the event with timezone information
+          examples:
+            - "2024-01-15T10:30:00+03:00"
+        metadata:
+          $ref: '#/components/schemas/TestTableMetadata'
+
+    TestTableResponse:
+      type: object
+      description: Response body for a test table record
+      required:
+        - id
+        - name
+        - eventDate
+        - eventTimestamp
+        - metadata
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+          maxLength: 255
+          description: The name of the test table record
+          examples:
+            - "Test Event"
+        eventDate:
+          type: string
+          format: date
+          description: The date of the event
+          examples:
+            - "2024-01-15"
+        eventTimestamp:
+          type: string
+          format: date-time
+          description: The timestamp of the event with timezone information
+          examples:
+            - "2024-01-15T10:30:00+03:00"
+        metadata:
+          $ref: '#/components/schemas/TestTableMetadata'
+        createdAt:
+          type: string
+          format: date-time
+          description: The timestamp when the record was created
+          examples:
+            - "2024-01-15T10:00:00+03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          description: The timestamp when the record was last updated
+          examples:
+            - "2024-01-15T10:00:00+03:00"
+
+    ProblemDetail:
+      type: object
+      description: RFC 9457 Problem Detail error response
+      required:
+        - type
+        - title
+        - status
+        - detail
+        - instance
+      properties:
+        type:
+          type: string
+          format: uri
+          description: A URI reference that identifies the problem type
+          examples:
+            - "about:blank"
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type
+          examples:
+            - "Bad Request"
+        status:
+          type: integer
+          description: The HTTP status code
+          examples:
+            - 400
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence
+          examples:
+            - "Invalid value for field 'name': Name is required"
+        instance:
+          type: string
+          format: uri
+          description: A URI reference that identifies the specific occurrence
+          examples:
+            - "/api/test-tables"

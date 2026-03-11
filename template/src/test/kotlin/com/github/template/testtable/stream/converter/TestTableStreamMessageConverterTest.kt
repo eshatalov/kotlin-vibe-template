@@ -1,7 +1,9 @@
-package com.github.template.testtable.stream
+package com.github.template.testtable.stream.converter
 
-import com.github.template.client.model.TestTableMetadata
-import com.github.template.client.model.TestTableResponse
+import com.github.template.message.TestTableEventType
+import com.github.template.message.TestTableStreamMessage
+import com.github.template.model.TestTableMetadata
+import com.github.template.model.TestTableResponse
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test

@@ -1,3 +1,5 @@
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+
 val springBootVersion: String by rootProject.extra
 
 plugins {
@@ -9,6 +11,41 @@ group = "com.github.template"
 version = "0.0.1-SNAPSHOT"
 
 val generatedSourceDir = "${layout.buildDirectory.get().asFile}/generated/src/main/kotlin"
+val generatedOutputDir = "${layout.buildDirectory.get().asFile}/generated"
+val ownerServicePackage = "com.github.template"
+val modelPackageName = "$ownerServicePackage.model"
+val clientPackageName = "$ownerServicePackage.client"
+val messagePackageName = "$ownerServicePackage.message"
+
+val commonConfigOptions = mapOf(
+    "useSpringBoot3" to "true",
+    "serializationLibrary" to "jackson",
+    "dateLibrary" to "java8",
+    "enumPropertyNaming" to "UPPERCASE",
+    "omitGradleWrapper" to "true",
+)
+
+val sharedModelNames = listOf(
+    "ProblemDetail",
+    "SaveTestTableRequest",
+    "TestTableMetadata",
+    "TestTableResponse"
+)
+
+val sharedModelTypeMappings = sharedModelNames.associateWith { it }
+val sharedModelImportMappings = sharedModelNames.associateWith { "$modelPackageName.$it" }
+
+fun GenerateTask.configureCommonKotlinGeneration() {
+    generatorName.set("kotlin")
+    library.set("jvm-spring-webclient")
+    outputDir.set(generatedOutputDir)
+    configOptions.set(commonConfigOptions)
+    generateModelTests.set(false)
+    generateApiTests.set(false)
+    generateModelDocumentation.set(false)
+    generateApiDocumentation.set(false)
+    cleanupOutput.set(false)
+}
 
 dependencies {
     implementation(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
@@ -25,27 +62,67 @@ sourceSets {
     }
 }
 
-openApiGenerate {
-    generatorName.set("kotlin")
-    library.set("jvm-spring-webclient")
-    inputSpec.set("$projectDir/src/main/resources/template.yaml")
-    outputDir.set("${layout.buildDirectory.get().asFile}/generated")
-    modelPackage.set("com.github.template.client.model")
-    apiPackage.set("com.github.template.client")
-    packageName.set("com.github.template.client")
-    configOptions.set(
+tasks.named<GenerateTask>("openApiGenerate").configure {
+    configureCommonKotlinGeneration()
+    inputSpec.set("$projectDir/src/main/resources/rest/template-rest.yaml")
+    modelPackage.set(modelPackageName)
+    apiPackage.set(clientPackageName)
+    packageName.set(clientPackageName)
+    globalProperties.set(
         mapOf(
-            "useSpringBoot3" to "true",
-            "serializationLibrary" to "jackson",
-            "dateLibrary" to "java8",
-            "enumPropertyNaming" to "UPPERCASE",
-            "omitGradleWrapper" to "true",
+            "apis" to "",
+            "models" to "false",
+            "supportingFiles" to "",
+            "modelDocs" to "false",
+            "apiDocs" to "false",
+            "modelTests" to "false",
+            "apiTests" to "false",
         )
     )
-    generateModelTests.set(false)
-    generateApiTests.set(false)
-    generateModelDocumentation.set(false)
-    generateApiDocumentation.set(false)
+    typeMappings.set(sharedModelTypeMappings)
+    importMappings.set(sharedModelImportMappings)
+}
+
+val generateContractModels by tasks.registering(GenerateTask::class) {
+    configureCommonKotlinGeneration()
+    inputSpec.set("$projectDir/src/main/resources/contract/template-contract.yaml")
+    modelPackage.set(modelPackageName)
+    packageName.set(modelPackageName)
+    globalProperties.set(
+        mapOf(
+            "models" to "",
+            "apis" to "false",
+            "supportingFiles" to "false",
+            "modelDocs" to "false",
+            "apiDocs" to "false",
+            "modelTests" to "false",
+            "apiTests" to "false",
+        )
+    )
+}
+
+val generateStreamMessages by tasks.registering(GenerateTask::class) {
+    configureCommonKotlinGeneration()
+    inputSpec.set("$projectDir/src/main/resources/stream/template-stream.yaml")
+    modelPackage.set(messagePackageName)
+    packageName.set(messagePackageName)
+    globalProperties.set(
+        mapOf(
+            "models" to "",
+            "apis" to "false",
+            "supportingFiles" to "false",
+            "modelDocs" to "false",
+            "apiDocs" to "false",
+            "modelTests" to "false",
+            "apiTests" to "false",
+        )
+    )
+    typeMappings.set(mapOf("TestTableResponse" to "TestTableResponse"))
+    importMappings.set(mapOf("TestTableResponse" to "$modelPackageName.TestTableResponse"))
+}
+
+val generateOpenApiSources by tasks.registering {
+    dependsOn(tasks.named("openApiGenerate"), generateContractModels, generateStreamMessages)
 }
 
 // Post-processing: migrate generated code from Jackson 2 to Jackson 3 and fix Spring 7 incompatibilities.
@@ -66,6 +143,14 @@ val migrateToJackson3 by tasks.registering {
         generatedDir.walkTopDown()
             .filter { it.isFile && it.extension == "kt" }
             .forEach { file ->
+                if (
+                    file.parentFile.name == "message" &&
+                    (file.name == "com.github.template.model.TestTableResponse.kt" || file.name == "TestTableResponseMetadata.kt")
+                ) {
+                    file.delete()
+                    return@forEach
+                }
+
                 var content = file.readText()
                 val originalContent = content
 
@@ -85,6 +170,72 @@ val migrateToJackson3 by tasks.registering {
                 // ApiClient.request() has T: Any? but Spring's toEntity() requires T: Any.
                 if (file.name == "ApiClient.kt") {
                     content = content.replace("reified T: Any?>", "reified T: Any>")
+                }
+
+                if (file.name == "TestTableApi.kt") {
+                    content = content.replace("com.github.template.model.SaveTestTableRequest", "SaveTestTableRequest")
+                    content = content.replace("com.github.template.model.TestTableResponse", "TestTableResponse")
+                    content = content.replace("comGithubTemplateModelSaveTestTableRequest", "saveTestTableRequest")
+                    content = content.replace(
+                        "import com.fasterxml.jackson.annotation.JsonProperty\n\n",
+                        "import com.fasterxml.jackson.annotation.JsonProperty\n\nimport com.github.template.model.SaveTestTableRequest\nimport com.github.template.model.TestTableResponse\n\n"
+                    )
+                    content = content.replace(
+                        "createTestTable(comGithubTemplateModelSaveTestTableRequest: SaveTestTableRequest)",
+                        "createTestTable(saveTestTableRequest: SaveTestTableRequest)"
+                    )
+                    content = content.replace(
+                        "createTestTableWithHttpInfo(comGithubTemplateModelSaveTestTableRequest = comGithubTemplateModelSaveTestTableRequest)",
+                        "createTestTableWithHttpInfo(saveTestTableRequest = saveTestTableRequest)"
+                    )
+                    content = content.replace(
+                        "createTestTableWithHttpInfo(comGithubTemplateModelSaveTestTableRequest: SaveTestTableRequest)",
+                        "createTestTableWithHttpInfo(saveTestTableRequest: SaveTestTableRequest)"
+                    )
+                    content = content.replace(
+                        "createTestTableRequestConfig(comGithubTemplateModelSaveTestTableRequest = comGithubTemplateModelSaveTestTableRequest)",
+                        "createTestTableRequestConfig(saveTestTableRequest = saveTestTableRequest)"
+                    )
+                    content = content.replace(
+                        "createTestTableRequestConfig(comGithubTemplateModelSaveTestTableRequest: SaveTestTableRequest)",
+                        "createTestTableRequestConfig(saveTestTableRequest: SaveTestTableRequest)"
+                    )
+                    content = content.replace(
+                        "val localVariableBody = comGithubTemplateModelSaveTestTableRequest",
+                        "val localVariableBody = saveTestTableRequest"
+                    )
+                    content = content.replace(
+                        "updateTestTable(id: java.util.UUID, createTestTableRequest: SaveTestTableRequest)",
+                        "updateTestTable(id: java.util.UUID, saveTestTableRequest: SaveTestTableRequest)"
+                    )
+                    content = content.replace(
+                        "updateTestTableWithHttpInfo(id = id, createTestTableRequest = createTestTableRequest)",
+                        "updateTestTableWithHttpInfo(id = id, saveTestTableRequest = saveTestTableRequest)"
+                    )
+                    content = content.replace(
+                        "updateTestTableWithHttpInfo(id: java.util.UUID, createTestTableRequest: SaveTestTableRequest)",
+                        "updateTestTableWithHttpInfo(id: java.util.UUID, saveTestTableRequest: SaveTestTableRequest)"
+                    )
+                    content = content.replace(
+                        "updateTestTableRequestConfig(id = id, createTestTableRequest = createTestTableRequest)",
+                        "updateTestTableRequestConfig(id = id, saveTestTableRequest = saveTestTableRequest)"
+                    )
+                    content = content.replace(
+                        "updateTestTableRequestConfig(id: java.util.UUID, createTestTableRequest: SaveTestTableRequest)",
+                        "updateTestTableRequestConfig(id: java.util.UUID, saveTestTableRequest: SaveTestTableRequest)"
+                    )
+                    content = content.replace(
+                        "val localVariableBody = createTestTableRequest",
+                        "val localVariableBody = saveTestTableRequest"
+                    )
+                }
+
+                if (file.name == "TestTableStreamMessage.kt") {
+                    content = content.replace("com.github.template.model.TestTableResponse", "TestTableResponse")
+                    content = content.replace(
+                        "import com.github.template.message.TestTableEventType\n\n",
+                        "import com.github.template.message.TestTableEventType\nimport com.github.template.model.TestTableResponse\n\n"
+                    )
                 }
 
                 // ResponseEntity.body is nullable; generated API methods expect non-null return.
@@ -128,7 +279,7 @@ object Serializer {
 
 // Task wiring: openApiGenerate -> migrateToJackson3 -> compileKotlin
 migrateToJackson3 {
-    dependsOn(tasks.named("openApiGenerate"))
+    dependsOn(generateOpenApiSources)
 }
 
 tasks.named("compileKotlin") {

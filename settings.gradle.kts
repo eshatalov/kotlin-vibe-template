@@ -141,3 +141,4 @@ rootProject.name = "ReactiveServiceTemplate"
 
 include("template")
 include("contract")
+include("test-processor")
